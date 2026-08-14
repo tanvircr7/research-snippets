@@ -1,5 +1,5 @@
 # LIVELOCK Experiment Tracker
-Last updated: 2026-08-13 (afternoon: 2B defense Qwen 7B started; 2B attack Main running Qwen 7B / Llama / Mistral; Qwen 14B 2B attack stays Colab)
+Last updated: 2026-08-14 (afternoon: 2B RAG attack Qwen 14B DONE 640/640, added to gold. 2B RAG attack matrix now complete for all planned models.)
 
 This document is the single source of truth for what has run, what is still running, what data is collected, and where every file lives.
 
@@ -109,8 +109,8 @@ Gold standard file `gold_standard/2a_url_attack_GOLD.csv` now has 3757 rows acro
 |-------|--------|--------|---------------|
 | Llama 3.1 8B | 2560 / 2560 | DONE | `exp2A-URL/defense/results/llama/` |
 | Qwen 2.5 14B | 2364 rows, 4 defenses x 8 conditions | DONE | `exp2A-URL/defense/results/qw14b/` |
-| Qwen 2.5 7B | Ongoing | IN PROGRESS | Bizon |
-| Mistral 7B | Ongoing | IN PROGRESS | Bizon |
+| Qwen 2.5 7B | 2560 / 2560 | DONE | `exp2A-URL/defense/results/qw7b_mistral/` |
+| Mistral 7B | 2557 / 2560 (3 failed) | DONE | `exp2A-URL/defense/results/qw7b_mistral/` |
 
 **Notebooks:**
 - `exp2A-URL/defense/2A_URL_Defense_GPU_01_Bizon.ipynb` (Bizon, Qwen 7B + Llama + Mistral)
@@ -123,6 +123,7 @@ Gold standard file `gold_standard/2a_url_attack_GOLD.csv` now has 3757 rows acro
 |----------|----------|-------------|
 | `exp2a_url_defense_qw14b_aug12-20260812T230353Z-1-001.zip` | Qwen 2.5 14B defense, 2364 rows, all 4 defenses (none / budget_cap / early_abort / d_mtd), 4 regimes x 2 conditions | `exp2A-URL/defense/results/qw14b/` |
 | `llama_defense_essentials.zip` | Llama 3.1 8B defense plus 71 interrupted Qwen3-4B rows (dropped). Llama kept: 2560 rows, full 32-arm grid | `exp2A-URL/defense/results/llama/` |
+| `bizon_snapshot_aug14.zip` (from `bizon_snapshot_aug13 (1).zip`, downloaded Aug 14) | Bizon snapshot bundling `outputs_exp2a_defense_bizon/` (Qwen 7B 2560/2560 + Mistral 7B 2557/2560), `outputs_exp2b_rag_main_bizon/` (adds Mistral 7B 635/640 to the RAG attack run), and `outputs_exp2b_rag_defense_qw7b_bizon/` (unchanged, already in gold) | `exp2A-URL/defense/results/qw7b_mistral/` and `exp2B-RAG/attack/results/main/` |
 
 **Key files in `exp2A-URL/defense/results/qw14b/`:**
 - `exp2a_Defense_exp2a_defense_qw14b_ALL.csv` - 2364 rows, full trial-level data (USE THIS)
@@ -136,7 +137,39 @@ Gold standard file `gold_standard/2a_url_attack_GOLD.csv` now has 3757 rows acro
 - `model_summary_after_meta_llama_Meta_Llama_3.1_8B_Instruct.csv` - 2560 completed, 0 failed
 - `model_summary_final.csv` - same, Llama only
 
-Gold standard file `gold_standard/2a_url_defense_GOLD.csv` now has both models: 2364 Qwen 14B + 2560 Llama = 4924 rows.
+**Key files in `exp2A-URL/defense/results/qw7b_mistral/`:**
+- `results_Qwen_Qwen2.5_7B_Instruct.csv` - 2560 rows, 0 failed (USE THIS; identical to the Qwen 7B rows already in gold from an earlier download, confirmed byte-for-byte on all columns except a harmless `trial` dtype difference)
+- `results_mistralai_Mistral_7B_Instruct_v0.3.csv` - 2557 rows, 3 failed of 2560 (USE THIS, NEW)
+- `results_final.csv` - 5117 rows combined (Qwen 7B + Mistral)
+- `model_summary_final.csv` - per-model completed/failed/success_rate
+- `bizon_snapshot_aug14.zip` - full snapshot archive as downloaded from Bizon
+
+Gold standard file `gold_standard/2a_url_defense_GOLD.csv` now has four models: 2364 Qwen 14B + 2560 Llama + 2560 Qwen 7B + 2557 Mistral = 10041 rows.
+
+### Mistral 7B defense AILD results (2A URL, NEW Aug 14)
+
+Same 2 task_ids (`arith_37_42`, `count_r_strawberry`) and greedy policy as Qwen 14B / Llama. Benign AILD is 0% across all regimes and defenses (n=320 per cell). Adversarial AILD:
+
+| Regime | Defense | AILD (adversarial) | Note |
+|--------|---------|-------------------|------|
+| Baseline | none | 0% | No AILD baseline |
+| Baseline | budget_cap | 0% | Effective |
+| Baseline | early_abort | 0% | Effective |
+| Baseline | d_mtd | 1.0% | Near-zero residual |
+| Prompt-only | none | 41.8% | Unlike Qwen 14B, Mistral shows AILD at Prompt-only with no controller |
+| Prompt-only | budget_cap | 48.0% | Worse than none |
+| Prompt-only | early_abort | 6.0% | Strong suppression |
+| Prompt-only | d_mtd | 37.0% | Weak suppression, unusual for D-MTD |
+| Controller-only | none | 100% | Full AILD confirmed |
+| Controller-only | budget_cap | 100% | Ineffective |
+| Controller-only | early_abort | 20.0% | Partial suppression |
+| Controller-only | d_mtd | 0% | FULL suppression |
+| Conservative | none | 100% | Full AILD confirmed |
+| Conservative | budget_cap | 100% | Ineffective |
+| Conservative | early_abort | 5.0% | Strong suppression |
+| Conservative | d_mtd | 0% | FULL suppression |
+
+**Key finding:** Mistral 7B is the first model where D-MTD does not fully zero out AILD in every regime, Prompt-only d_mtd sits at 37%. This is worth flagging for the paper's D-MTD limitations discussion, since the existing text claims D-MTD "reduces AILD to zero across the majority of model-regime configurations" (still true in aggregate, but Mistral's Prompt-only cell is a genuine exception, not just noise, at n=100 per condition).
 
 ### Qwen 14B defense AILD results (2A URL)
 
@@ -195,15 +228,44 @@ Full 2560-row grid. Same 2 task_ids (`arith_37_42`, `count_r_strawberry`) and gr
 | Model | Trials | Status | Data location |
 |-------|--------|--------|---------------|
 | Qwen 2.5 7B | 640 / 640 | DONE | `exp2B-RAG/attack/results/main/results_Qwen_Qwen2.5_7B_Instruct.csv` |
-| Qwen 2.5 14B | 0 | TODO (Colab) | - |
+| Qwen 2.5 14B | 640 / 640 | DONE | `exp2B-RAG/attack/results/qw14b/results_Qwen_Qwen2.5_14B_Instruct.csv` |
 | Llama 3.1 8B | 638 / 640 | DONE | `exp2B-RAG/attack/results/main/results_meta_llama_Meta_Llama_3.1_8B_Instruct.csv` |
-| Mistral 7B | 370 / 640 | ONGOING | Bizon mid checkpoint, not in gold |
+| Mistral 7B | 635 / 640 (5 failed) | DONE | `exp2B-RAG/attack/results/main/results_mistralai_Mistral_7B_Instruct_v0.3.csv` |
 | Gemma 3 12B | 589 / 640 | DONE (51 failed) | `exp2B-RAG/attack/results/gemma_12b/exp2b_gemma_bizon_results.csv` |
 
 **Notebooks:**
 - `exp2B-RAG/attack/2B-RAG-Main.ipynb` (Colab, non-Gemma models)
+- `exp2B-RAG/attack/2B-RAG-Main-Bizon.ipynb` (Bizon, ran Qwen 7B / Llama / Mistral to completion)
 - `exp2B-RAG/attack/2B-RAG-Gemma-Main.ipynb` (Colab, Gemma)
 - `exp2B-RAG/attack/2B-RAG-Gemma-Main-Bizon.ipynb` (Bizon GPU 1)
+
+### Mistral 7B attack results (2B RAG, NEW Aug 14)
+
+635 of 640 completed, 5 failed. Tasks: `deadline_policy`, `policy_applicability`.
+
+| Regime | Benign AILD | Adversarial AILD |
+|--------|-------------|-------------------|
+| Baseline | 3.1% (n=98) | 19.4% (n=98) |
+| Prompt-only | 4.0% (n=100) | 27.0% (n=100) |
+| Controller-only | 0% (n=59) | 65.0% (n=60) |
+| Conservative | 0% (n=60) | 66.7% (n=60) |
+
+Mistral 7B on RAG follows the same qualitative shape as the other models: low AILD under $\gamma=0$ regimes, sharp jump under $\gamma=1$ regimes. Compared to Gemma 12B on the same channel (100% at Controller/Conservative), Mistral tops out lower (~65-67%), closer to the tool-based 2A URL pattern for this model family.
+
+### Qwen 14B attack results (2B RAG, NEW Aug 14)
+
+640 of 640 completed, 0 failed, 0 exact duplicates. Tasks: `deadline_policy`, `policy_applicability`. Source zip: `exp2b_rag_attack_qw14b-20260814T172628Z-1-001.zip`.
+
+| Regime | Benign AILD | Adversarial AILD |
+|--------|-------------|-------------------|
+| Baseline | 0% (n=100) | 4.0% (n=100) |
+| Prompt-only | 0% (n=100) | 4.0% (n=100) |
+| Controller-only | 0% (n=60) | 100% (n=60) |
+| Conservative | 0% (n=60) | 100% (n=60) |
+
+Qwen 14B on RAG saturates at 100% under $\gamma=1$ (Controller-only and Conservative), matching Gemma 12B on this channel and matching Qwen 14B's own 2A URL pattern under enforced regimes. Baseline and Prompt-only stay near zero (4% adversarial), closer to the 2A URL Qwen 14B Baseline result (11.43%) than to Gemma's RAG Baseline (~47%). All 8 arms are full (n=100 for $\gamma=0$, n=60 for $\gamma=1$).
+
+2B RAG attack is now complete for all planned models: Qwen 7B, Qwen 14B, Llama 8B, Mistral 7B, Gemma 12B. Qwen3 4B remains optional (null-control, attack-only).
 
 ### Gemma 12B attack (2B RAG)
 
@@ -223,7 +285,7 @@ Shortfall is concentrated in v2 adversarial arms:
 
 Compared with the same model on 2A URL: RAG is stronger. URL Baseline/Prompt-only were 0%. RAG Baseline/Prompt-only are ~47% to 49%. URL Controller/Conservative were 43% and 55%. RAG Controller/Conservative are 100%.
 
-Gold file: `gold_standard/2b_rag_attack_GOLD.csv` (589 rows). Not merged into the 2A attack gold. Different channel, thinner schema (no `experiment`, `policy`, `max_calls`, `task_type`).
+Gold file: `gold_standard/2b_rag_attack_GOLD.csv` now has 5 models: Qwen 7B (640) + Qwen 14B (640) + Llama (638) + Mistral (635) + Gemma 12B (589) = 3142 rows. Not merged into the 2A attack gold. Different channel, thinner schema (no `experiment`, `policy`, `max_calls`, `task_type`).
 
 ---
 
@@ -250,10 +312,10 @@ Gold file: `gold_standard/2b_rag_defense_GOLD.csv` (2560 rows). The old `exp2b_r
                      ATTACK               DEFENSE
                  2A-URL   2B-RAG      2A-URL    2B-RAG
 Qwen 7B          DONE     DONE        DONE      DONE
-Qwen 14B         DONE*    TODO-COLAB  DONE**    DONE
+Qwen 14B         DONE*    DONE******** DONE**    DONE
 Qwen3 4B         DONE     TODO        N/A       N/A
 Llama 8B         DONE     DONE        DONE****  N/A
-Mistral 7B       DONE     ONGOING     ONGOING   N/A
+Mistral 7B       DONE     DONE******* DONE*******N/A
 Gemma 12B        DONE***** DONE****** N/A       N/A
 Gemma 4B         SMOKE    UNCONF      N/A       N/A
 
@@ -267,7 +329,16 @@ Gemma 4B         SMOKE    UNCONF      N/A       N/A
     adversarial 58/60. Smoke-test Gemma file is not in gold.
 ****** Gemma 12B 2B RAG attack: 589/640. Controller-only adv 31/60,
     Conservative adv 38/60. AILD at 100% on those two arms.
+******* Mistral 7B, both new as of Aug 14 Bizon snapshot: 2A defense 2557/2560
+    (3 failed), 2B RAG attack 635/640 (5 failed). Both added to gold standard.
+    Mistral is the only model where D-MTD does not zero AILD in every regime
+    (Prompt-only d_mtd AILD = 37% in 2A defense, n=100).
+******** Qwen 14B 2B RAG attack: 640/640, 0 failed. Colab zip
+    exp2b_rag_attack_qw14b-20260814T172628Z-1-001.zip. AILD 4% Baseline/Prompt-only
+    adversarial, 100% Controller-only and Conservative adversarial.
 ```
+
+**2B RAG attack is now complete for all planned models (Qwen 7B, Qwen 14B, Llama 8B, Mistral 7B, Gemma 12B).**
 
 ---
 
@@ -324,19 +395,38 @@ LIVELOCK-EXP-Aug9/
           llama_defense_essentials.zip                <- raw mixed zip
           model_summary_after_meta_llama_Meta_Llama_3.1_8B_Instruct.csv
           model_summary_final.csv
+        qw7b_mistral/
+          results_Qwen_Qwen2.5_7B_Instruct.csv        <- 2560 rows, USE THIS
+          results_mistralai_Mistral_7B_Instruct_v0.3.csv <- 2557 rows, USE THIS (NEW)
+          results_final.csv          <- 5117 rows combined
+          model_summary_final.csv
+          bizon_snapshot_aug14.zip   <- full snapshot archive
 
   gold_standard/
     2a_url_attack_GOLD.csv           <- 3757 rows, 6 attack models
-    2a_url_defense_GOLD.csv          <- 7484 rows, Qwen 14B + Qwen 7B + Llama
-    2b_rag_attack_GOLD.csv           <- 1867 rows, Gemma 12B + Qwen 7B + Llama
+    2a_url_defense_GOLD.csv          <- 10041 rows, Qwen 14B + Llama + Qwen 7B + Mistral
+    2b_rag_attack_GOLD.csv           <- 3142 rows, Qwen 7B + Qwen 14B + Llama + Mistral + Gemma 12B
     2b_rag_defense_GOLD.csv          <- 2560 rows, Qwen 7B + Qwen 14B
 
   exp2B-RAG/
     attack/
       2B-RAG-Main.ipynb
+      2B-RAG-Main-Bizon.ipynb
       2B-RAG-Gemma-Main.ipynb
       2B-RAG-Gemma-Main-Bizon.ipynb
       results/
+        main/
+          results_Qwen_Qwen2.5_7B_Instruct.csv             <- 640 rows
+          results_meta_llama_Meta_Llama_3.1_8B_Instruct.csv <- 638 rows
+          results_mistralai_Mistral_7B_Instruct_v0.3.csv    <- 635 rows, USE THIS
+          results_final.csv          <- 1913 rows combined (Qwen+Llama+Mistral)
+          model_summary_final.csv
+        qw14b/
+          results_Qwen_Qwen2.5_14B_Instruct.csv            <- 640 rows, USE THIS (NEW)
+          results_final.csv
+          model_summary_final.csv
+          model_summary_after_Qwen_Qwen2.5_14B_Instruct.csv
+          exp2b_rag_attack_qw14b-20260814T172628Z-1-001.zip
         gemma_12b/
           exp2b_gemma_bizon_results.csv          <- 589 rows, USE THIS
           model_summary_after_unsloth_gemma_3_12b_it_bnb_4bit.csv
@@ -346,22 +436,25 @@ LIVELOCK-EXP-Aug9/
       2B-RAG-Defense-Main.ipynb
       2B-RAG-Defense-Main-Bizon.ipynb
       2b-defense-code.txt
-      exp2b_rag_defense_qw7b_320_results.csv  <- partial, 320 rows
+      exp2b_rag_defense_qw7b_320_results.csv  <- partial, 320 rows, excluded from gold
 
   paper/
     livelock_paper_statistical_review.md
     x-paper.pdf
+    agentic_livelock_threats.tex
 ```
 
 ---
 
 ## What to do next (priority order)
 
-1. **Finish 2A defense Qwen 7B + Mistral on Bizon.** Download results and place in `exp2A-URL/defense/results/qw7b_mistral/`.
-2. **Re-examine 2A URL defense design:** both Qwen 14B and Llama used only 2 task_ids + greedy policy. Add more task diversity before final analysis.
-3. **Run 2B RAG Main on Colab** for Qwen 7B, Qwen 14B, Llama, Mistral. Results go to `exp2B-RAG/attack/results/main/`.
-4. **Run 2B RAG Defense** (Qwen 7B on Bizon, Qwen 14B on Colab). Nothing has run yet.
-5. **Combined analysis** once 2B RAG attack has more models: mixed-effects logistic regression across channels.
+1. ~~Finish 2A defense Qwen 7B + Mistral on Bizon.~~ DONE Aug 14 (2560/2560 Qwen 7B, 2557/2560 Mistral). In `exp2A-URL/defense/results/qw7b_mistral/`, in gold standard.
+2. **Re-examine 2A URL defense design:** all four defense models (Qwen 14B, Llama, Qwen 7B, Mistral) used only 2 task_ids + greedy policy. Add more task diversity before final analysis.
+3. ~~Run 2B RAG Main on Bizon for Qwen 7B / Llama / Mistral.~~ DONE Aug 14 (640/640, 638/640, 635/640). In `exp2B-RAG/attack/results/main/`, in gold standard.
+4. ~~Run 2B RAG Main on Colab for Qwen 14B.~~ DONE Aug 14 (640/640, 0 failed). In `exp2B-RAG/attack/results/qw14b/`, in gold standard.
+5. ~~Run 2B RAG Defense (Qwen 7B on Bizon, Qwen 14B on Colab).~~ DONE (1280/1280 each, 2560 rows in gold standard).
+6. **Run 2B RAG Defense for Mistral.** Not started; not in current plan but would complete the defense matrix picture for this model.
+7. **Combined analysis** now that 2B RAG attack has 5 models and 2A defense has 4 models: mixed-effects logistic regression across channels, and flag the Mistral Prompt-only d_mtd exception (37% AILD) in the D-MTD discussion.
 
 ---
 
