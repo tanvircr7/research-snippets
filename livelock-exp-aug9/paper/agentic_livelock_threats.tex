@@ -78,7 +78,7 @@ decisionDiamond/.style={
 \maketitle
 
 \begin{abstract}
-Agentic LLM systems increasingly rely on delegation — offloading verification, retrieval, and reasoning to external tools, retrieval corpora, and peer agents — to resolve epistemic uncertainty during task execution. We identify a class of liveness vulnerability, delegation-induced livelock, in which an adversary controls a schema-valid delegation endpoint to sustain near-threshold confidence signals, preventing the agent from satisfying its termination condition and trapping it in an indefinite verification loop. Unlike prompt injection or jailbreaking, this attack requires no access to model weights or system prompts; it exploits the architectural decision to offload epistemic authority to external components. We formalize the attack using a four-parameter policy model, introduce Adversarial-Induced Liveness Degradation (AILD) as a metric isolating attack effect from baseline instability, and evaluate the attack across six open-source LLMs, two delegation types, and four operational regimes. Our results show that adversarial delegation raises liveness failure rates from 3.41\% to 49.35\% overall, with AILD exceeding 70\% under controller-enforced regimes. Controller enforcement is the dominant predictor of livelock susceptibility, while conservative risk framing provides a secondary amplification. We propose Delegation-based Moving Target Defense (D-MTD), which dynamically rotates the delegation channel and perturbs the acceptance threshold to break the attacker's stable control over the verification loop. D-MTD reduces AILD to zero across the majority of model-regime configurations where budget-cap and early-abort baselines fail, establishing liveness as a first-class security metric for agentic systems.
+Agentic LLM systems increasingly rely on delegation — offloading verification, retrieval, and reasoning to external tools, retrieval corpora, and peer agents — to resolve epistemic uncertainty during task execution. We identify a class of liveness vulnerability, delegation-induced livelock, in which an adversary controls a schema-valid delegation endpoint to sustain near-threshold confidence signals, preventing the agent from satisfying its termination condition and trapping it in an indefinite verification loop. Unlike prompt injection or jailbreaking, this attack requires no access to model weights or system prompts; it exploits the architectural decision to offload epistemic authority to external components. We formalize the attack using a four-parameter policy model, introduce Adversarial-Induced Liveness Degradation (AILD) as a metric isolating attack effect from baseline instability, and evaluate the attack across five open-source LLMs (with a sixth, Qwen3-4B, evaluated as a null control excluded from pooled statistics) two delegation types, and four operational regimes. Our results show that adversarial delegation raises liveness failure rates from 5.47\% to 42.35\% overall, with AILD exceeding 70\% under controller-enforced regimes. Controller enforcement is the dominant predictor of livelock susceptibility, while conservative risk framing provides a secondary amplification. We propose Delegation-based Moving Target Defense (D-MTD), which dynamically rotates the delegation channel and perturbs the acceptance threshold to break the attacker's stable control over the verification loop. [FILL IN: state the D-MTD headline result yourself, channel-by-channel — it zeroes AILD on the tool-based/URL channel across every evaluated model-regime cell, and reduces RAG-channel AILD from 100\% to 10-17.5\% in the two enforced regimes without reaching zero; frame how you want to characterize that gap], establishing liveness as a first-class security metric for agentic systems.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -100,9 +100,9 @@ This paper makes the following contributions:
 \begin{itemize}
 \item We develop a formal attack framework for delegation-induced livelock, unifying tool calls, retrieval-augmented generation (RAG), and multi-agent delegation under a common abstraction, and introduce Adversarial-Induced Liveness Degradation (AILD) as a metric that isolates attack effect from baseline instability.
 
-\item We empirically show that adversarial delegation raises liveness failure rates from 3.41\% to 49.35\% across six open-source LLMs and two delegation types, with AILD reaching up to 100 percentage points under controller-enforced policies.
+\item We empirically show that adversarial delegation raises liveness failure rates from 5.47\% to 42.35\% across five open-source LLMs and two delegation types (a sixth model, Qwen3-4B, is evaluated but excluded from pooled statistics as a null control; see Section~\ref{sec:evaluating-attacks}), with AILD reaching up to 100 percentage points under controller-enforced policies.
 
-\item We design and evaluate Delegation-based Moving Target Defense (D-MTD), which reduces AILD to zero across the majority of model-regime configurations where budget-cap and early-abort baselines fail.
+\item We design and evaluate Delegation-based Moving Target Defense (D-MTD), which [FILL IN: same channel-qualified framing as the abstract — zero AILD on the URL/tool channel, 10-17.5\% residual AILD on the RAG channel in the two enforced regimes] where budget-cap and early-abort baselines fail.
 \end{itemize}
 
 The remainder of this paper is organized as follows. Section 2 reviews related work on agentic systems and security. Section 3 presents our threat model. Section 4 introduces the attack framework for delegation-induced livelock. Section 5 describes the experimental methodology and evaluation results. Section 6 presents defense strategies. Section 7 evaluates those defenses, and Section 8 concludes with limitations and future work.
@@ -336,17 +336,23 @@ Delegation-induced livelock is therefore a \textit{policy-dependent liveness fai
 \caption{Large Language Models evaluated in the experimental evaluation.}
 \label{tab:llm_models}
 \small
-\begin{tabular}{lcc}
+\begin{tabular}{lccc}
 \toprule
-\textbf{LLMs} & \textbf{Parameters} & \textbf{License} \\
+\textbf{LLMs} & \textbf{Parameters} & \textbf{License} & \textbf{Coverage} \\
 \midrule
-Qwen 2.5 & 7B, 14B & Open Source \\
-Qwen 3 & 4B & Open Source \\
-Llama 3.1 & 8B & Open Source \\
-Mistral & 7B & Open Source \\
-Gemma 3 & 12B & Open Source \\
+Qwen 2.5 & 7B, 14B & Open Source & Attack + Defense (URL, RAG) \\
+Qwen 3 & 4B & Open Source & Attack only (null control)$^\dagger$ \\
+Llama 3.1 & 8B & Open Source & Attack + Defense (URL only) \\
+Mistral & 7B & Open Source & Attack only$^\ddagger$ \\
+Gemma 3 & 12B & Open Source & Attack only$^\S$ \\
 \bottomrule
 \end{tabular}
+\\[2pt]
+\raggedright
+\footnotesize
+$^\dagger$ 0 liveness failures across all 480 attack trials (both conditions, all four regimes); excluded from defense evaluation and from pooled attack statistics due to low instruction-following, not included as evidence of attack ineffectiveness. \quad
+$^\ddagger$ Defense runs incomplete at submission time. \quad
+$^\S$ Excluded from defense evaluation; requires a specialized model-loading path (\texttt{Gemma3ForConditionalGeneration}) not shared by the other evaluated models.
 \end{table}
 
 
@@ -358,9 +364,9 @@ Gemma 3 & 12B & Open Source \\
 
 \subsubsection{LLMs and Tasks}
 
-\paragraph{LLMs} We evaluate the following six LLMs: Qwen 2.5 (7B and 14B), Qwen 3 4B, Llama 3.1 8B, Mistral 7B, and Gemma 3 12B. Table~\ref{tab:llm_models} shows the details of those LLMs. Unless otherwise mentioned, we use Qwen 2.5 7B as the default model, due to its instruction following capabilities on top of it being open sourced, enabling systematic evaluation.
+\paragraph{LLMs} We evaluate the following six LLMs: Qwen 2.5 (7B and 14B), Qwen 3 4B, Llama 3.1 8B, Mistral 7B, and Gemma 3 12B. Table~\ref{tab:llm_models} shows the details of those LLMs and their evaluation coverage. Unless otherwise mentioned, we use Qwen 2.5 7B as the default model, due to its instruction following capabilities on top of it being open sourced, enabling systematic evaluation. Qwen3-4B recorded zero liveness failures across all 480 attack trials, in both the benign and adversarial condition and all four operational regimes; [FILL IN: state your own conclusion about why — low instruction-following on the delegation-confidence protocol is our working explanation, but write this the way you want it framed for a reviewer]. We therefore report Qwen3-4B only in the per-model attack breakdown and exclude it from every pooled statistic and from the defense evaluation.
 
-\paragraph{Tasks} In our experiments we use simple deterministic tasks whose ground-truth answers are unambiguous, primarily arithmetic and string-counting tasks. These tasks are simple intentionally because the goal is not to test task success, but to isolate whether delegation and completion logic can prevent termination.
+\paragraph{Tasks} In our experiments we use simple deterministic tasks whose ground-truth answers are unambiguous, primarily arithmetic and string-counting tasks. These tasks are simple intentionally because the goal is not to test task success, but to isolate whether delegation and completion logic can prevent termination. Each channel is instantiated with exactly two fixed task instances (\texttt{arith\_37\_42} and \texttt{count\_r\_strawberry} on the tool-based/URL channel; \texttt{deadline\_policy} and \texttt{policy\_applicability} on the RAG channel), and all decoding is greedy. Under the benign channel this makes most benign-condition cells fully deterministic across trials — the reported ``N trials'' collapse to the 2 underlying task outcomes replicated N/2 times each rather than N independent draws. Under the adversarial channel, per-trial confidence jitter (Section~\ref{sec:threat-model}) produces genuine trial-to-trial variation even under greedy decoding, so this limitation is specific to the benign reference rate rather than to the attack-condition numbers that AILD is computed from. [FILL IN: decide how strongly to caveat the benign-side confidence intervals in light of this — e.g., whether to report them as illustrative rather than inferential].
 
 \subsubsection{Attack Settings}
 
@@ -454,39 +460,61 @@ Comparing attack success across regimes reveals whether safety mechanisms
 \subsection{Attack Results}
 
 \paragraph{Adversarial delegation induces liveness failure}
-Table~\ref{tab:liveness_analysis} shows the results for the attack across six LLMs and two tasks carried out using tool-based and RAG-based delegation. Comparing benign and adversarial channels, we observe a sharp increase in liveness failure across all models, confirming that agents are broadly susceptible to delegation-induced livelock. AILD scores reveal that susceptibility is strongly regime-dependent: enforced regimes ($\gamma=1$) consistently exhibit substantially higher degradation than voluntary-termination regimes ($\gamma=0$). Within the same model family, the attack scales with model capability: Qwen2.5-14B reaches higher AILD under Baseline (11.43\%) than Qwen2.5-7B (5.0\%), and both saturate at 100\% under enforced regimes. Figure~\ref{fig:per-model-failure-rate} summarizes per-model liveness failure rates under benign and adversarial conditions; models with near-zero benign LF confirm that the observed adversarial failures are attributable to the attack rather than baseline instability.
+Table~\ref{tab:liveness_analysis} pools the attack results across the five non-null-control LLMs and both delegation channels (tool-based/URL and RAG), $N=2559$ benign and $N=2425$ adversarial episodes. Comparing benign and adversarial channels, we observe a sharp increase in liveness failure, confirming that agents are broadly susceptible to delegation-induced livelock. AILD scores reveal that susceptibility is strongly regime-dependent: enforced regimes ($\gamma=1$) consistently exhibit substantially higher degradation than voluntary-termination regimes ($\gamma=0$). Table~\ref{tab:per_model_aild} breaks this down per model. [FILL IN: the pooled pattern does not scale monotonically with model capability the way our earlier draft claimed — Qwen2.5-14B and Qwen2.5-7B both show 0\% AILD at Baseline, while Llama3.1-8B and Mistral-7B show real, non-zero Baseline/Prompt-only AILD that Qwen and Gemma do not; write your own characterization of what actually drives the per-model spread here instead of a capability-scaling story]. Figure~\ref{fig:per-model-failure-rate} summarizes per-model liveness failure rates under benign and adversarial conditions; models with near-zero benign LF confirm that the observed adversarial failures are attributable to the attack rather than baseline instability, except Llama3.1-8B and Qwen2.5-7B (Controller-only), whose non-zero benign rates are discussed separately below.
 
 \begin{table}[!t]
 \centering
-\caption{Liveness Failure Rates (\%) and Attack-Induced Liveness Degradation (AILD) Across Defense Regimes.}
+\caption{Liveness Failure Rates (\%) and Adversarial-Induced Liveness Degradation (AILD) by Operational Regime, pooled across 5 models (Qwen3-4B excluded) and both delegation channels.}
 \label{tab:liveness_analysis}
 \begin{tabular}{l c c c}
 \toprule
 \textbf{Operational Regime} & \multicolumn{2}{c}{\textbf{Liveness Failure Rate (\%)}} & \textbf{AILD (\%)} \\
 \cmidrule(r){2-3} \cmidrule(l){4-4}
-& Benign & Adversarial & \\
+& Benign ($N$) & Adversarial ($N$) & \\
 \midrule
-Baseline        & 4.55 & 25.58 & 21.04 \\
-Prompt-only     & 4.55 & 25.69 & 21.14 \\
-Controller-only & 4.55 & 74.87 & 70.33 \\
-Conservative    & \textbf{0.00} & 73.71 & 73.71 \\
+Baseline        & 7.12 (800) & 16.93 (774) & 9.81 \\
+Prompt-only     & 6.62 (800) & 24.27 (783) & 17.65 \\
+Controller-only & 6.25 (480) & 79.11 (426) & 72.86 \\
+Conservative    & \textbf{0.00} (479) & 83.48 (442) & 83.48 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+\begin{table}[!t]
+\centering
+\caption{Per-model AILD (\%) by operational regime, tool-based/URL channel. $N=100$ per condition at Baseline/Prompt-only, $N=60$ at Controller-only/Conservative, minus occasional incomplete-trial shortfalls (exact per-cell $N$ in the released gold-standard data).}
+\label{tab:per_model_aild}
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{Baseline} & \textbf{Prompt-only} & \textbf{Controller-only} & \textbf{Conservative} \\
+\midrule
+Qwen2.5-14B & 0.00 & 0.00 & 100.00 & 100.00 \\
+Qwen2.5-7B  & 0.00 & 0.00 & 50.00  & 100.00 \\
+Llama3.1-8B & 17.35 & 41.00 & 100.00 & 100.00 \\
+Mistral-7B  & 0.00 & 41.30 & 100.00 & 98.31 \\
+Gemma3-12B  & 0.00 & 0.00 & 43.10  & 55.00 \\
+\midrule
+Qwen3-4B$^\dagger$ & 0.00 & 0.00 & 0.00 & 0.00 \\
+\bottomrule
+\end{tabular}
+\\[2pt]
+\raggedright\footnotesize $^\dagger$ Null control, excluded from the pooled rows above; see Table~\ref{tab:llm_models}.
+\end{table}
+
 \paragraph{Livelocking is policy-dependent}
-Table~\ref{tab:condition} aggregates liveness failure across all models and delegation types. Under benign delegation, the overall liveness failure rate is 3.41\%, confirming that the base task and delegation loop are well-behaved. Under adversarial delegation, this rises to 49.35\%, and the hit-budget rate tracks almost identically at 49.94\%. The near-perfect correspondence between hitting the budget and liveness failure indicates that agents which exhaust the delegation budget almost never recover: the adversarial channel leaves no residual high-confidence signal for the agent to act on. The heatmap in Table~\ref{tab:liveness_analysis} further reveals the policy dependence of this failure: benign liveness failure rates are near-zero across all regimes ($\leq$4.55\%), whereas adversarial failure rates stratify sharply by controller enforcement. Regimes with $\gamma=0$ (Baseline, Prompt-only) reach 25.58\% and 25.69\% adversarial LF respectively, while regimes with $\gamma=1$ (Controller-only, Conservative) reach 74.87\% and 73.71\%. This three-fold gap between enforced and unenforced regimes is the central finding of the attack evaluation: adversarial delegation alone is insufficient to induce reliable livelock; the attacker requires the controller to enforce the acceptance threshold.
+Table~\ref{tab:condition} aggregates liveness failure across the five pooled models and both delegation channels. Under benign delegation, the overall liveness failure rate is 5.47\% ($N=2559$; 95\% Wilson CI [4.65, 6.42]), confirming that the base task and delegation loop are mostly well-behaved, with the caveat on benign-side determinism noted in Section~\ref{sec:evaluating-attacks} above. Under adversarial delegation, this rises to 42.35\% ($N=2425$; CI [40.40, 44.33]), and the hit-budget rate tracks almost identically at 42.56\%. The near-perfect correspondence between hitting the budget and liveness failure indicates that agents which exhaust the delegation budget almost never recover: the adversarial channel leaves no residual high-confidence signal for the agent to act on. Table~\ref{tab:liveness_analysis} further reveals the policy dependence of this failure: benign liveness failure rates stay under 7.2\% across all regimes except Controller-only's 6.25\% and are exactly 0\% under Conservative, whereas adversarial failure rates stratify sharply by controller enforcement. Regimes with $\gamma=0$ (Baseline, Prompt-only) reach 16.93\% and 24.27\% adversarial LF respectively, while regimes with $\gamma=1$ (Controller-only, Conservative) reach 79.11\% and 83.48\%. This gap between enforced and unenforced regimes is the central finding of the attack evaluation: adversarial delegation alone is insufficient to induce reliable livelock; [FILL IN: your own framing of how large/decisive this enforced-vs-unenforced gap is — our earlier draft called it "three-fold" and that arithmetic no longer holds at roughly 4.5x to 5x on the current pooled numbers, so restate the comparison the way you want it].
 
 \begin{table}[!t]
 \centering
-\caption{Failure rates aggregated by delegation.}
+\caption{Liveness failure and hit-budget rates aggregated by condition, pooled across 5 models (Qwen3-4B excluded) and both channels.}
 \label{tab:condition}
-\begin{tabular}{lcc}
+\begin{tabular}{lccc}
 \toprule
-\textbf{Condition} & \textbf{Hit Budget Rate (\%)} & \textbf{Liveness Failure Rate (\%)} \\
+\textbf{Condition} & \textbf{$N$} & \textbf{Hit Budget Rate (\%)} & \textbf{Liveness Failure Rate (\%)} \\
 \midrule
-benign & 3.41 & 3.41 \\
-adversarial & 49.94 & 49.35 \\
+benign & 2559 & 5.47 & 5.47 \\
+adversarial & 2425 & 42.56 & 42.35 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -499,16 +527,16 @@ adversarial & 49.94 & 49.35 \\
 \end{figure}
 
 \paragraph{Effect of Controller Enforcement}
-Controller enforcement ($\gamma$) is the dominant driver of livelock susceptibility. Aggregated across all models, moving from $\gamma=0$ to $\gamma=1$ increases AILD from approximately 21\% to over 70\% (Table~\ref{tab:liveness_analysis}). This effect is consistent at the per-model level. Qwen2.5-14B shows 11.43\% AILD under Baseline but reaches 100\% under Controller-only — every adversarial episode results in budget exhaustion. Mistral-7B similarly jumps from 0\% AILD at Baseline to 76.47\% at Controller-only. The mechanism is direct: when $\gamma=0$, the agent can voluntarily exit the delegation loop even if the channel-reported confidence falls short of $\tau$, effectively overriding the adversarial signal. When $\gamma=1$, the controller enforces the threshold and rejects early termination, trapping the agent in the verification loop for as long as the adversarial channel sustains near-threshold uncertainty.
+Aggregated across the five pooled models, moving from $\gamma=0$ to $\gamma=1$ increases pooled AILD from 9.81-17.65\% to 72.86-83.48\% (Table~\ref{tab:liveness_analysis}). At the per-model level (Table~\ref{tab:per_model_aild}) the direction is consistent but the magnitude is not uniform: Qwen2.5-14B goes from 0\% AILD under Baseline to 100\% under Controller-only, and Mistral-7B goes from 0\% under Baseline to 100\% under Controller-only as well, but Qwen2.5-7B only reaches 50\% under Controller-only (versus 100\% under Conservative), and Gemma3-12B reaches just 43.1\%/55.0\% under Controller-only/Conservative — well below saturation. [FILL IN: write your own claim strength here — "dominant driver" is defensible on the pooled numbers but Gemma3-12B and Qwen2.5-7B's Controller-only cell are the two counter-examples you'd need to address if a reviewer pushes on "dominant"]. The mechanism is direct: when $\gamma=0$, the agent can voluntarily exit the delegation loop even if the channel-reported confidence falls short of $\tau$, effectively overriding the adversarial signal. When $\gamma=1$, the controller enforces the threshold and rejects early termination, trapping the agent in the verification loop for as long as the adversarial channel sustains near-threshold uncertainty.
 
 \paragraph{Effect of Risk Framing}
-Risk framing ($\rho$) has a substantially smaller independent effect. Comparing regimes with the same $\gamma$, the AILD difference attributable to $\rho$ alone is marginal: Baseline (21.04\%) versus Prompt-only (21.14\%) differ by only 0.10 percentage points under $\gamma=0$. Under $\gamma=1$, Controller-only (70.33\%) versus Conservative (73.71\%) differ by 3.38 percentage points. Risk framing thus contributes a modest amplification effect, particularly in the enforced regime, but is neither necessary nor sufficient to induce reliable livelock on its own. The conservative prompt framing increases the model's reluctance to terminate without high-confidence verification, but without controller enforcement to back it, the model retains discretion to exit the loop.
+Comparing pooled regimes with the same $\gamma$: Baseline (9.81\%) versus Prompt-only (17.65\%) differ by 7.84 percentage points under $\gamma=0$; Controller-only (72.86\%) versus Conservative (83.48\%) differ by 10.62 percentage points under $\gamma=1$. [FILL IN: our previous draft characterized this gap as "marginal" at 0.10 and 3.38 points; on the current pooled numbers it is neither trivially small nor dominant — decide how you want to characterize a ~8 to 11 point risk-framing effect relative to the ~60 to 70 point controller-enforcement effect]. At the per-model level the pattern is uneven: Llama3.1-8B's Baseline-to-Prompt-only AILD roughly doubles (17.35\% to 41.0\%) and Mistral-7B's jumps from 0\% to 41.3\%, while Qwen2.5-14B and Gemma3-12B show no Baseline-to-Prompt-only change at all (both 0\%). The conservative prompt framing increases some models' reluctance to terminate without high-confidence verification, but without controller enforcement to back it, the model retains discretion to exit the loop.
 
 \paragraph{Interaction Effect}
-The interaction between $\rho$ and $\gamma$ is asymmetric. $\gamma=1$ is a near-necessary condition for high AILD: without controller enforcement, adversarial AILD remains bounded below 32\% across all models and regimes. With $\gamma=1$, AILD routinely exceeds 50\% and in several cases saturates at 100\%. Within the enforced regime, $\rho_{\text{high}}$ provides a secondary amplification: Qwen2.5-7B shows 75\% AILD under Controller-only and 100\% under Conservative, while Mistral-7B shows 76.47\% under Controller-only and 83.33\% under Conservative. The Conservative regime ($\rho_{\text{high}}, \gamma=1$) represents the worst-case configuration: the model is primed by its system prompt to distrust low-confidence verification signals, and the controller independently enforces the same rejection criterion. These two pressures compound to close off the agent's remaining pathways to voluntary termination.
+[FILL IN: the "AILD remains bounded below 32\% without $\gamma=1$" claim from our previous draft is contradicted by the current per-model data — Llama3.1-8B (41.0\%) and Mistral-7B (41.3\%) both exceed 32\% AILD under Prompt-only with $\gamma=0$ still off; rewrite this paragraph's bound using Table~\ref{tab:per_model_aild} once you decide what claim the data actually supports]. Within the enforced regime, $\rho_{\text{high}}$ does not uniformly amplify AILD relative to $\rho_{\text{low}}$: Qwen2.5-14B, Llama3.1-8B, and Gemma3-12B all show equal-or-higher AILD under Conservative than Controller-only (consistent with amplification), but Mistral-7B shows a small \emph{decrease} from 100.0\% under Controller-only to 98.31\% under Conservative. [FILL IN: decide whether the Mistral-7B decrease is noise (its Controller-only $N$ and Conservative $N$ are both 59 to 60, so a one-trial difference moves AILD by roughly 1.7 points) or worth a dedicated sentence].
 
 \paragraph{Attacks generalize across tools and RAG}
-Figure~\ref{fig:liveness_degradation} shows AILD across tool-based and RAG-based delegation for each operational regime. Both channel types exhibit the same qualitative pattern: low AILD under $\gamma=0$ regimes and a sharp increase under $\gamma=1$ regimes. RAG-based delegation consistently achieves higher AILD than tool-based delegation across all regimes, reaching approximately 80\% under Controller-only and Conservative compared to 62\% and 70\% for tool-based delegation. The higher effectiveness of RAG-based adversarial channels may reflect the greater surface area of retrieval responses: verbose, multi-passage outputs are harder for the agent to evaluate for confidence, making near-threshold signals more persuasive and more difficult to dismiss. Despite this difference in magnitude, the underlying attack mechanism — sustaining epistemic ambiguity through schema-valid, non-convergent responses — operates identically across both channel types.
+Figure~\ref{fig:liveness_degradation} shows AILD across tool-based/URL and RAG-based delegation for each operational regime. Both channel types exhibit the same qualitative pattern: low AILD under $\gamma=0$ regimes and a sharp increase under $\gamma=1$ regimes. The URL channel currently has attack data for five models (Qwen2.5-7B/14B, Llama3.1-8B, Mistral-7B, Gemma3-12B) while the RAG channel currently has attack data for three (Qwen2.5-7B, Llama3.1-8B, Gemma3-12B; see Table~\ref{tab:llm_models}), so a same-model, matched comparison restricted to the three models present in both channels is necessary before comparing channels directly. On that matched three-model comparison, the direction reverses between the unenforced and enforced regimes: RAG shows higher AILD under Baseline (19.34\% vs.\ 5.48\%) and Prompt-only (19.33\% vs.\ 13.66\%), but URL shows higher AILD under Controller-only (64.47\% vs.\ 62.91\%, roughly tied) and Conservative (85.00\% vs.\ 71.34\%). This is the opposite ranking from our earlier draft's claim that RAG "consistently achieves higher AILD... across all regimes, reaching approximately 80\%," which was based on unequal model coverage per channel rather than a matched comparison. [FILL IN: this needs a real explanation, not a restated hypothesis — go back to the qwq7b_mistral URL-defense task and the pending 2B RAG Main Qwen-14B run on the pending-tasks list, decide whether to (a) qualify this as a preliminary three-model comparison, (b) hold this claim entirely until Qwen2.5-14B and Mistral-7B have RAG-channel attack data, or (c) drop the cross-channel ranking claim from this draft and keep only the "same qualitative pattern" statement]. Despite the reversal in channel ranking, the underlying attack mechanism — sustaining epistemic ambiguity through schema-valid, non-convergent responses — operates identically across both channel types.
 
 \paragraph{Effect of threshold and budget}
 The default configuration uses $\tau=0.90$ and a delegation budget $B$ sufficient to observe convergence under benign conditions. The near-perfect alignment between hit-budget rate (49.94\%) and liveness failure rate (49.35\%) in Table~\ref{tab:condition} indicates that the budget is not the binding constraint under benign conditions — agents terminate well before exhausting it. Under adversarial delegation, the budget becomes the sole termination mechanism: since the adversarial channel sustains $c_k \in [\tau-\epsilon, \tau)$ indefinitely, the agent exits only when $B$ is exhausted. Higher values of $\tau$ tighten the acceptance window and expand the range of confidence values the attacker can use, making the attack easier to sustain. Smaller budgets limit resource consumption but do not restore liveness — they merely produce earlier failure, as confirmed by the budget-cap defense results in Section~\ref{sec:evaluating-defenses}.
@@ -726,19 +754,16 @@ repeated delegations before stagnation is detected.
 Consequently, early-abort improves liveness but does not
 fully eliminate adversarial degradation.
 
-\subsubsection{D-MTD most consistently restores liveness}
+\subsubsection{D-MTD most consistently restores liveness, with a channel-dependent gap}
 
 Across the evaluated models and operational regimes,
-D-MTD achieves the lowest observed AILD values and in
-many cases reduces degradation to zero. Unlike budget caps
+D-MTD achieves the lowest observed AILD values of the three defenses in every cell of Table~\ref{tab:defense-results-url} and Table~\ref{tab:defense-results-rag}. On the tool-based/URL channel (Table~\ref{tab:defense-results-url}), D-MTD reaches exactly 0.0\% AILD in every Qwen2.5-14B and Qwen2.5-7B cell and in three of Llama3.1-8B's four cells. On the RAG channel (Table~\ref{tab:defense-results-rag}), D-MTD reaches 0.0\% under Baseline and Prompt-only but only reduces AILD to 10.0-17.5\% under Controller-only and Conservative — it does not reach zero on either evaluated RAG-channel model in the two enforced regimes. Unlike budget caps
 or static stopping rules, D-MTD dynamically changes the
-effective delegation surface during execution, directly targeting the structural prerequisite of the attack.
+effective delegation surface during execution, directly targeting the structural prerequisite of the attack, but the RAG-channel enforced-regime residual shows this does not fully eliminate the vulnerability on every channel. [FILL IN: your own read on why the RAG channel leaves a residual where URL doesn't — e.g., whether it's the verifier-pool composition for RAG being smaller/different, retrieval-response verbosity making the progress-aware stagnation check less reliable, or something you'd want to check against the D-MTD implementation before claiming a mechanism].
 
-The mechanistic basis for this effectiveness follows from the threat model. As established in Section~\ref{sec:threat-model}, the attack relies on the agent repeatedly consulting a single, attacker-controlled delegation endpoint to sustain fixed near-threshold uncertainty. D-MTD disrupts this by randomizing channel selection at each delegation step: even when the adversarial channel is present in the pool $\mathcal{D}$, its probability of being selected on any given step is bounded by $1/|\mathcal{D}|$, limiting the attacker's cumulative influence over the verification history. Threshold perturbation further invalidates the attacker's confidence calibration — since $\tau_t$ varies across steps, values tuned to remain just below a fixed $\tau$ will occasionally exceed the effective threshold, allowing the agent to terminate. Progress-aware termination provides a final safeguard: if the pool is adversarially dominated and channel rotation alone is insufficient, stagnation detection triggers exit before the full budget is exhausted. Together, these three mechanisms directly target the three prerequisites of the attack: stable channel access, a fixed acceptance boundary, and an unlimited delegation budget.
+The mechanistic basis for this effectiveness follows from the threat model. As established in Section~\ref{sec:threat-model}, the attack relies on the agent repeatedly consulting a single, attacker-controlled delegation endpoint to sustain fixed near-threshold uncertainty. D-MTD disrupts this by randomizing channel selection at each delegation step: even when the adversarial channel is present in the pool $\mathcal{D}$, its probability of being selected on any given step is bounded by $1/|\mathcal{D}|$, limiting the attacker's cumulative influence over the verification history. Threshold perturbation further invalidates the attacker's confidence calibration — since $\tau_t$ varies across steps, values tuned to remain just below a fixed $\tau$ will occasionally exceed the effective threshold, allowing the agent to terminate. Progress-aware termination provides a final safeguard: if the pool is adversarially dominated and channel rotation alone is insufficient, stagnation detection triggers exit before the full budget is exhausted. Together, these three mechanisms directly target the three prerequisites of the attack: stable channel access, a fixed acceptance boundary, and an unlimited delegation budget. This mechanism account explains why AILD falls on both channels; it does not by itself explain the URL-versus-RAG gap in how far it falls, which remains an open question above.
 
-These results suggest that moving-target strategies are
-particularly well-suited for defending delegation-driven
-control-flow attacks in agentic systems, and that the key to liveness restoration lies in breaking the attacker's ability to maintain predictable influence over the verification loop rather than merely bounding its duration.
+[FILL IN: write your own closing characterization of the moving-target-defense result now that it is channel-qualified rather than uniform — how strongly to claim "particularly well-suited," and whether to foreground the URL-channel zero-AILD result or the RAG-channel residual as the more important message for a reviewer].
 
 % \subsubsection{Tradeoffs and limitations}
 
@@ -765,13 +790,9 @@ control-flow attacks in agentic systems, and that the key to liveness restoratio
 %
 
 \centering
-\caption{Defense Results (AILD Score)}
-\label{tab:defense-results}
+\caption{Defense Results (AILD Score), tool-based/URL channel. Nominal $N$=100 per cell (Baseline/Prompt-only) or $N$=60 (Controller-only/Conservative); Qwen2.5-14B and Llama3.1-8B have occasional incomplete-trial shortfalls down to $N$=40 in a small number of cells. Mistral-7B is omitted: its URL-channel defense run is not yet complete (Table~\ref{tab:llm_models}). Exact per-cell $N$ is in the released gold-standard CSVs.}
+\label{tab:defense-results-url}
 
-% Old Line 
-% \small
-
-% New Added Line 
 \scriptsize
 \setlength{\tabcolsep}{4pt}
 %
@@ -780,44 +801,53 @@ control-flow attacks in agentic systems, and that the key to liveness restoratio
 \toprule
 \textbf{Model} & \textbf{Regime} & \textbf{No Defense} & \textbf{Budget cap} & \textbf{Early-abort} & \textbf{D-MTD} \\
 \midrule
-\multirow{4}{*}{Gemma3-12B} & Baseline & 0.0 & 0.0 & 0.0 & 0.0 \\
-& Prompt-only & 0.0 & 0.0 & 0.0 & 0.0 \\
-& Controller-only & 20.0 & 70.0 & 10.0 & 0.0 \\
-& Conservative & 50.0 & 50.0 & 10.0 & 0.0 \\
+\multirow{4}{*}{Qwen2.5-14B} & Baseline & 0.0 & 7.14 & 0.0 & 0.0 \\
+& Prompt-only & 0.0 & 2.30 & 0.0 & 0.0 \\
+& Controller-only & 100.0 & 100.0 & 5.88 & 0.0 \\
+& Conservative & 100.0 & 100.0 & 10.42 & 0.0 \\
 \midrule
-\multirow{4}{*}{Llama3.1-8B} & Baseline & 100.0 & 100.0 & 20.0 & -10.0 \\
-& Prompt-only & 50.0 & 50.0 & -50.0 & 0.0 \\
-& Controller-only & 100.0 & 100.0 & 0.0 & 0.0 \\
-& Conservative & 100.0 & 100.0 & 10.0 & 0.0 \\
+\multirow{4}{*}{Qwen2.5-7B} & Baseline & 0.0 & 0.0 & 0.0 & 0.0 \\
+& Prompt-only & 0.0 & 2.0 & 0.0 & 0.0 \\
+& Controller-only & 50.0 & 50.0 & 11.67 & 0.0 \\
+& Conservative & 100.0 & 100.0 & 15.0 & 0.0 \\
 \midrule
-\multirow{4}{*}{Mistral-7B} & Baseline & 0.0 & 0.0 & 0.0 & 0.0 \\
-& Prompt-only & 50.0 & 50.0 & 10.0 & 20.0 \\
-& Controller-only & 100.0 & 100.0 & 20.0 & 0.0 \\
-& Conservative & 100.0 & 100.0 & 10.0 & 0.0 \\
-\midrule
-\multirow{4}{*}{Qwen2.5-14B} & Baseline & 0.0 & 40.0 & 0.0 & 0.0 \\
-& Prompt-only & 0.0 & 0.0 & 0.0 & 0.0 \\
-& Controller-only & 100.0 & 100.0 & 0.0 & 0.0 \\
-& Conservative & 100.0 & 100.0 & 20.0 & 0.0 \\
-\midrule
-\multirow{4}{*}{Qwen2.5-7B} & Baseline & 0.0 & 10.0 & 0.0 & 0.0 \\
-& Prompt-only & 0.0 & 0.0 & 0.0 & 0.0 \\
-& Controller-only & 50.0 & 50.0 & 10.0 & 0.0 \\
-& Conservative & 100.0 & 100.0 & 30.0 & 0.0 \\
-\midrule
-\multirow{4}{*}{Qwen3-4B} & Baseline & 0.0 & 0.0 & 0.0 & 0.0 \\
-& Prompt-only & 0.0 & 0.0 & 0.0 & 0.0 \\
-& Controller-only & 0.0 & 0.0 & 0.0 & 0.0 \\
-& Conservative & 0.0 & 0.0 & 0.0 & 0.0 \\
+\multirow{4}{*}{Llama3.1-8B} & Baseline & 77.0 & 92.0 & 5.0 & -5.0$^\dagger$ \\
+& Prompt-only & 36.0 & 49.0 & -40.0$^\dagger$ & -3.0$^\dagger$ \\
+& Controller-only & 100.0 & 100.0 & 10.0 & 0.0 \\
+& Conservative & 100.0 & 100.0 & 16.67 & 0.0 \\
 \bottomrule
 \end{tabular}
-
-
+\\[2pt]
+\raggedright\footnotesize $^\dagger$ Negative AILD (adversarial LF below benign LF); see the discussion in Section~\ref{sec:evaluating-defenses} below. Llama3.1-8B's own non-zero benign-condition LF (Table~\ref{tab:per_model_aild} discussion) is the likely mechanical driver of both this cell and the unusually high No-Defense/Budget-cap values above; [FILL IN: confirm this against the raw per-trial logs rather than asserting it].
 
 % Old Line 
 % \end{table*}
 
 % New Added Line 
+\end{table}
+%
+
+\begin{table}[!t]
+\centering
+\caption{Defense Results (AILD Score), RAG channel. Nominal $N$=40 per cell across all regimes; exact per-cell $N$ is in the released gold-standard CSVs. Llama3.1-8B and Gemma3-12B are omitted: neither has a completed RAG-channel defense run (see pending-work tracker).}
+\label{tab:defense-results-rag}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llccccc}
+\toprule
+\textbf{Model} & \textbf{Regime} & \textbf{No Defense} & \textbf{Budget cap} & \textbf{Early-abort} & \textbf{D-MTD} \\
+\midrule
+\multirow{4}{*}{Qwen2.5-14B} & Baseline & 2.5 & 37.5 & 0.0 & 0.0 \\
+& Prompt-only & 2.5 & 42.5 & 0.0 & 0.0 \\
+& Controller-only & 100.0 & 100.0 & 12.5 & 10.0 \\
+& Conservative & 100.0 & 100.0 & 5.0 & 17.5 \\
+\midrule
+\multirow{4}{*}{Qwen2.5-7B} & Baseline & 5.0 & 25.0 & 0.0 & 0.0 \\
+& Prompt-only & 0.0 & 30.0 & 0.0 & 0.0 \\
+& Controller-only & 100.0 & 100.0 & 12.5 & 12.5 \\
+& Conservative & 100.0 & 100.0 & 17.5 & 10.0 \\
+\bottomrule
+\end{tabular}
 \end{table}
 %
 
@@ -841,13 +871,22 @@ agentic systems requires balancing robustness against
 delegation attacks with preservation of normal task
 completion behavior.
 
+\subsubsection{Llama3.1-8B's benign-condition instability}
+\label{sec:llama-anomaly}
+
+Table~\ref{tab:defense-results-url}'s Llama3.1-8B No-Defense row (77.0\% Baseline, 36.0\% Prompt-only) is far higher than every other model's No-Defense Baseline/Prompt-only AILD (0.0\% in all four other URL-channel model-regime cells at Table~\ref{tab:defense-results-url} and Table~\ref{tab:per_model_aild}). Cross-referencing against the attack-only data in Table~\ref{tab:per_model_aild}, Llama3.1-8B's own attack-evaluation AILD at Baseline/Prompt-only is 17.35\%/41.0\%, not 77.0\%/36.0\%: the defense-harness and attack-harness numbers for the same model, same regime, same "no defense" condition disagree. Both harnesses report a non-zero \emph{benign}-condition liveness-failure rate for this model (unlike every other evaluated model, whose benign LF is 0\% at Baseline/Prompt-only), which is the direct arithmetic driver of the elevated AILD in both harnesses, but the two harnesses' benign LF numbers do not themselves agree with each other. [FILL IN: this is confirmed as a real, reproducible discrepancy in the gold-standard data, not a computation error in this reconciliation, per the no-speculation policy we are not asserting a root cause here; go verify against the raw per-trial logs for exp2A-URL's attack run vs.\ defense run for Llama3.1-8B Baseline/Prompt-only \texttt{benign} condition before writing a causal explanation, and state here whether it is a harness/prompt-version mismatch, a seed/decoding difference, or a genuine model-specific instability]. We flag this here rather than silently averaging over it, since it also affects how the URL-channel Table~\ref{tab:defense-results-url} No-Defense and Budget-cap columns for Llama3.1-8B should be read: at least part of those columns' apparent vulnerability reflects benign instability rather than adversarial degradation.
+
+\subsubsection{Negative AILD cells}
+
+Two cells in Table~\ref{tab:defense-results-url} show negative AILD, i.e., the adversarial-condition liveness-failure rate is \emph{lower} than the benign-condition rate under that defense: Llama3.1-8B's early-abort defense at Prompt-only ($-40.0$\%) and D-MTD at Baseline ($-5.0$\%) and Prompt-only ($-3.0$\%). Because AILD is defined as $\Pr(\mathrm{LF}\mid\mathrm{adv}) - \Pr(\mathrm{LF}\mid\mathrm{benign})$ (Eq.~\ref{eq:aild}), a negative value is only possible when the benign-condition failure rate itself is elevated, which Section~\ref{sec:llama-anomaly} shows is the case for this model. [FILL IN: decide how to present negative-AILD cells in the released table — leave them as signed numbers as the metric produces them (most defensible), floor them at 0.0 with a footnote, or exclude Llama3.1-8B's Baseline/Prompt-only row from the URL defense table pending the harness-discrepancy check above].
+
 
 \section{Conclusion, Limitations, and Future Work}
 
-In this work, we identify delegation-induced livelock as a distinct and measurable liveness vulnerability in agentic LLM systems. We show that an outsider attacker who controls a schema-valid delegation endpoint can trap an agent in an indefinite verification loop without injecting imperative instructions, compromising model weights, or violating any interface contract. Our empirical evaluation across six LLMs, two task types, and two delegation channels demonstrates that adversarial delegation raises liveness failure rates from 3.41\% to 49.35\% overall, with AILD reaching up to 100 percentage points under controller-enforced policy regimes. We further show that controller enforcement ($\gamma=1$) is the dominant prerequisite for high liveness degradation, while risk framing ($\rho$) provides a secondary amplification. Finally, we demonstrate that Delegation-based Moving Target Defense (D-MTD) most consistently restores liveness by breaking the attacker's ability to maintain stable control over the verification loop, reducing AILD to zero across the majority of model-regime configurations where competing defenses fail.
+In this work, we identify delegation-induced livelock as a distinct and measurable liveness vulnerability in agentic LLM systems. We show that an outsider attacker who controls a schema-valid delegation endpoint can trap an agent in an indefinite verification loop without injecting imperative instructions, compromising model weights, or violating any interface contract. Our empirical evaluation across five LLMs (plus Qwen3-4B as a null control; Table~\ref{tab:llm_models}), two task types, and two delegation channels demonstrates that adversarial delegation raises liveness failure rates from 5.47\% to 42.35\% overall, with AILD reaching up to 100 percentage points under controller-enforced policy regimes. [FILL IN: restate the controller-enforcement/risk-framing claim in your own words now that the risk-framing gap is 8 to 11 points rather than "marginal" — see the Effect of Risk Framing discussion in Section~\ref{sec:evaluating-attacks}]. Finally, we demonstrate that Delegation-based Moving Target Defense (D-MTD) [FILL IN: the channel-qualified D-MTD summary — zero AILD on the URL channel, 10-17.5\% residual on the RAG channel's two enforced regimes; see Section~\ref{sec:evaluating-defenses}] where competing defenses fail.
 
 \paragraph{Limitations and future work.}
-Our evaluation uses simple deterministic tasks — arithmetic and string-counting — that are intentionally chosen to isolate delegation and completion logic from task difficulty. Whether the same livelock dynamics emerge under complex, real-world agentic tasks (e.g., software development, web navigation, multi-step reasoning) remains an open question. Additionally, we evaluate a black-box outsider attacker who does not adapt to the deployed defense: an adaptive attacker who probes D-MTD's channel rotation behavior and adjusts confidence values to counter threshold perturbation could potentially reduce D-MTD's effectiveness. Our evaluation is also limited to open-source models; evaluating proprietary systems such as GPT-4 or Claude would reveal whether architectural or RLHF differences alter livelock susceptibility. Finally, while D-MTD provides strong empirical liveness restoration, formally verifying liveness guarantees under bounded adversarial pool compositions remains future work, as does integration with runtime monitoring frameworks \cite{koohestani2025agentguard} to enable continuous liveness assurance in deployed agentic systems.
+Our evaluation uses simple deterministic tasks — arithmetic and string-counting on the tool-based/URL channel, two fixed policy-document questions on the RAG channel — that are intentionally chosen to isolate delegation and completion logic from task difficulty. Each channel currently uses only two distinct task instances under greedy decoding, which makes most benign-condition trials deterministic replicates rather than independent draws (Section~\ref{sec:evaluating-attacks}); broadening task diversity before a final release is planned but not yet done. Model coverage is also currently uneven across channels and across attack vs.\ defense evaluation: five models have URL-channel attack data but only three have URL-channel defense data and only two have RAG-channel defense data (Table~\ref{tab:llm_models}), and Mistral-7B's URL-channel defense run and one additional Qwen2.5-14B RAG-channel attack run were still in progress at submission time. [FILL IN: decide how prominently to foreground this coverage gap in the limitations paragraph versus treating it as resolved by the per-table footnotes above]. Whether the same livelock dynamics emerge under complex, real-world agentic tasks (e.g., software development, web navigation, multi-step reasoning) remains an open question. Additionally, we evaluate a black-box outsider attacker who does not adapt to the deployed defense: an adaptive attacker who probes D-MTD's channel rotation behavior and adjusts confidence values to counter threshold perturbation could potentially reduce D-MTD's effectiveness. Our evaluation is also limited to open-source models; evaluating proprietary systems such as GPT-4 or Claude would reveal whether architectural or RLHF differences alter livelock susceptibility. We have not yet run a mixed-effects or other repeated-measures statistical test across the combined attack dataset; the pooled percentages and Wilson confidence intervals reported here treat trials within a cell as independent draws, which Section~\ref{sec:evaluating-attacks} shows is only approximately true on the benign side given the two-task design. Finally, while D-MTD provides strong empirical liveness restoration on the URL channel, formally verifying liveness guarantees under bounded adversarial pool compositions remains future work, as does integration with runtime monitoring frameworks \cite{koohestani2025agentguard} to enable continuous liveness assurance in deployed agentic systems, and as does closing the RAG-channel residual identified in Section~\ref{sec:evaluating-defenses}.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
