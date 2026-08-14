@@ -1,0 +1,2 @@
+model_name,completed_trials,failed_trials,total_trials,success_rate
+unsloth/gemma-3-12b-it-bnb-4bit,589,51,640,0.9203125

@@ -1,0 +1,2 @@
+model_name,completed_trials,failed_trials,total_trials,success_rate
+meta-llama/Meta-Llama-3.1-8B-Instruct,635,5,640,0.9921875

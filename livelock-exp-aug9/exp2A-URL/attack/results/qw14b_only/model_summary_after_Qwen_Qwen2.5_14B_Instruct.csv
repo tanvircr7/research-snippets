@@ -1,0 +1,2 @@
+model_name,completed_trials,failed_trials,total_trials,success_rate
+Qwen/Qwen2.5-14B-Instruct,573,67,640,0.8953125

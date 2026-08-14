@@ -1,0 +1,17 @@
+model_name,regime,defense_name,attacker_controlled,benign,AILD
+Qwen/Qwen2.5-14B-Instruct,Baseline,budget_cap,0.07142857142857142,0.0,0.07142857142857142
+Qwen/Qwen2.5-14B-Instruct,Baseline,d_mtd,0.0,0.0,0.0
+Qwen/Qwen2.5-14B-Instruct,Baseline,early_abort,0.0,0.0,0.0
+Qwen/Qwen2.5-14B-Instruct,Baseline,none,0.0,0.0,0.0
+Qwen/Qwen2.5-14B-Instruct,Conservative,budget_cap,1.0,0.0,1.0
+Qwen/Qwen2.5-14B-Instruct,Conservative,d_mtd,0.0,0.0,0.0
+Qwen/Qwen2.5-14B-Instruct,Conservative,early_abort,0.10416666666666667,0.0,0.10416666666666667
+Qwen/Qwen2.5-14B-Instruct,Conservative,none,1.0,0.0,1.0
+Qwen/Qwen2.5-14B-Instruct,Controller-only,budget_cap,1.0,0.0,1.0
+Qwen/Qwen2.5-14B-Instruct,Controller-only,d_mtd,0.0,0.0,0.0
+Qwen/Qwen2.5-14B-Instruct,Controller-only,early_abort,0.058823529411764705,0.0,0.058823529411764705
+Qwen/Qwen2.5-14B-Instruct,Controller-only,none,1.0,0.0,1.0
+Qwen/Qwen2.5-14B-Instruct,Prompt-only,budget_cap,0.022988505747126436,0.0,0.022988505747126436
+Qwen/Qwen2.5-14B-Instruct,Prompt-only,d_mtd,0.0,0.0,0.0
+Qwen/Qwen2.5-14B-Instruct,Prompt-only,early_abort,0.0,0.0,0.0
+Qwen/Qwen2.5-14B-Instruct,Prompt-only,none,0.0,0.0,0.0
