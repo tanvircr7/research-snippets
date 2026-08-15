@@ -1,5 +1,5 @@
 # LIVELOCK Experiment Tracker
-Last updated: 2026-08-14 (afternoon: 2B RAG attack Qwen 14B DONE 640/640, added to gold. 2B RAG attack matrix now complete for all planned models.)
+Last updated: 2026-08-14 (evening: added Bizon-configured Gemma 12B defense notebooks for 2A URL and 2B RAG, both offline-smoke-tested and pushed to research-snippets. Not yet run -- see TODO rows below.)
 
 This document is the single source of truth for what has run, what is still running, what data is collected, and where every file lives.
 
@@ -14,14 +14,14 @@ This document is the single source of truth for what has run, what is still runn
 | Qwen/Qwen3-4B-Instruct-2507 | Qwen3 | 4B | Yes | No (null/control) |
 | meta-llama/Meta-Llama-3.1-8B-Instruct | Llama | 8B | Yes | Yes (Bizon) |
 | mistralai/Mistral-7B-Instruct-v0.3 | Mistral | 7B | Yes | Yes (Bizon) |
-| unsloth/gemma-3-12b-it-bnb-4bit | Gemma | 12B | Yes (Bizon, confirmed) | No (excluded) |
+| unsloth/gemma-3-12b-it-bnb-4bit | Gemma | 12B | Yes (Bizon, confirmed) | TODO (notebooks ready, not yet run) |
 | unsloth/gemma-3-4b-it-bnb-4bit | Gemma | 4B | Notebook default on Bizon; 2A run used 12B | No (excluded) |
 
 NOTE on Gemma: Both Bizon Gemma attack runs are **12B**, confirmed from CSV `model_name=unsloth/gemma-3-12b-it-bnb-4bit`. 2A URL: 638 rows. 2B RAG: 589 rows. The Bizon notebook still lists 4B as the uncommented default; that default was overridden for these runs.
 
 Qwen3 4B is a null-control example: it showed 0% AILD across all 8 arms, making only one tool call consistently. It is an attack model only, not included in defense.
 
-Gemma is excluded from defense: it requires a specialized loader (`Gemma3ForConditionalGeneration`) that adds engineering overhead. Defense coverage is complete without it.
+UPDATE 2026-08-14 (evening): Gemma was previously excluded from defense because `Gemma3ForConditionalGeneration` needs a dedicated loader that the Qwen/Llama/Mistral defense harness didn't have. That gap is now closed: `2A_URL_Defense_Gemma_Bizon.ipynb` and `2B_RAG_Defense_Gemma_Bizon.ipynb` wire `load_gemma3()` / `create_gemma3_llm_step()` (lifted from the proven Gemma attack notebooks) into the existing `DefenseConfig`/`RAGDefenseConfig` harness unchanged. Both notebooks are offline-smoke-tested (mocked model backend, all 4 defense arms + every termination path exercised) and pushed to research-snippets, but have NOT been run on real hardware yet -- see TODO rows below.
 
 ---
 
@@ -111,11 +111,19 @@ Gold standard file `gold_standard/2a_url_attack_GOLD.csv` now has 3757 rows acro
 | Qwen 2.5 14B | 2364 rows, 4 defenses x 8 conditions | DONE | `exp2A-URL/defense/results/qw14b/` |
 | Qwen 2.5 7B | 2560 / 2560 | DONE | `exp2A-URL/defense/results/qw7b_mistral/` |
 | Mistral 7B | 2557 / 2560 (3 failed) | DONE | `exp2A-URL/defense/results/qw7b_mistral/` |
+| Gemma 3 12B | 0 / 2560 | TODO (notebook ready, not yet run) | -- |
 
 **Notebooks:**
 - `exp2A-URL/defense/2A_URL_Defense_GPU_01_Bizon.ipynb` (Bizon, Qwen 7B + Llama + Mistral)
 - `exp2A-URL/defense/2A_URL_Defense_MAIN_fallout_qw14b.ipynb` (Colab, Qwen 14B only)
 - `exp2A-URL/defense/2A_URL_Defense.ipynb` (original Colab version, reference)
+- `exp2A-URL/defense/2A_URL_Defense_TOPUP_bizon.ipynb`, `2A_URL_Defense_TOPUP_qw14b.ipynb`
+  (not yet run) -- `early_abort` residual top-up, see item 0 in "What to do next" below.
+- `exp2A-URL/defense/2A_URL_Defense_Gemma_Bizon.ipynb` (Bizon GPU 2, Gemma 12B, NEW 2026-08-14
+  evening, not yet run) -- same `DefenseConfig`/4-defense/tiered-N structure as the Bizon
+  Qwen/Llama/Mistral notebook, `load_gemma3()` swapped in for the model backend. `SMOKE_TEST=False`
+  by default; single `MODEL_NAMES` definition; warning-suppression cell before the main loop.
+  Offline-smoke-tested (mocked backend), not yet run on real hardware.
 
 ### ZIP archive mapping (exp2A defense)
 
@@ -297,12 +305,20 @@ Gold file: `gold_standard/2b_rag_attack_GOLD.csv` now has 5 models: Qwen 7B (640
 |-------|--------|--------|---------------|
 | Qwen 2.5 7B | 1280 / 1280 | DONE | `exp2B-RAG/defense/results/qw7b/` |
 | Qwen 2.5 14B | 1280 / 1280 | DONE | `exp2B-RAG/defense/results/qw14b/` |
+| Gemma 3 12B | 0 / 1280 | TODO (notebook ready, not yet run) | -- |
 
 **Notebooks:**
 - `exp2B-RAG/defense/2B-RAG-Defense-Main.ipynb` (Colab, Qwen 14B)
-- `exp2B-RAG/defense/2B-RAG-Defense-Main-Bizon.ipynb` (Bizon GPU 2, Qwen 7B)
+- `exp2B-RAG/defense/2B-RAG-Defense-Main-Bizon.ipynb` (Bizon GPU 4, Qwen 7B)
+- `exp2B-RAG/defense/2B_RAG_Defense_Gemma_Bizon.ipynb` (Bizon GPU 5, Gemma 12B, NEW 2026-08-14
+  evening, not yet run) -- `RAGDefenseConfig`/4-defense/4-regime structure unchanged from the
+  Qwen notebook, `load_gemma3()`/`create_gemma3_llm_step()` swapped in for the model backend.
+  `SMOKE_TEST=False` by default; single `MODEL_NAMES` definition; warning-suppression cell
+  before the main loop. Offline-smoke-tested (mocked backend), not yet run on real hardware.
 
 Gold file: `gold_standard/2b_rag_defense_GOLD.csv` (2560 rows). The old `exp2b_rag_defense_qw7b_320_results.csv` exploratory file is still excluded.
+
+**N=40 per cell, flat across all four regimes (not tiered like the URL defense notebook, despite an inaccurate comment that used to claim otherwise -- corrected 2026-08-14).** Tier 2 significance testing found this underpowered specifically for the Controller-only/Conservative D-MTD residual (see item 0 in "What to do next" below); a dedicated top-up run is prepared but not yet executed. Note: URL defense (N=60 tier) is NOT fully in the clear either -- see item 0, `early_abort` residual.
 
 ---
 
@@ -316,7 +332,7 @@ Qwen 14B         DONE*    DONE******** DONE**    DONE
 Qwen3 4B         DONE     TODO        N/A       N/A
 Llama 8B         DONE     DONE        DONE****  N/A
 Mistral 7B       DONE     DONE******* DONE*******N/A
-Gemma 12B        DONE***** DONE****** N/A       N/A
+Gemma 12B        DONE***** DONE****** TODO#     TODO#
 Gemma 4B         SMOKE    UNCONF      N/A       N/A
 
 *  Qwen 14B attack: 573/640 (shortfall in adversarial arms, usable)
@@ -336,6 +352,10 @@ Gemma 4B         SMOKE    UNCONF      N/A       N/A
 ******** Qwen 14B 2B RAG attack: 640/640, 0 failed. Colab zip
     exp2b_rag_attack_qw14b-20260814T172628Z-1-001.zip. AILD 4% Baseline/Prompt-only
     adversarial, 100% Controller-only and Conservative adversarial.
+#  Gemma 12B defense (both channels): notebooks built 2026-08-14 evening
+    (2A_URL_Defense_Gemma_Bizon.ipynb GPU 2, 2B_RAG_Defense_Gemma_Bizon.ipynb GPU 5),
+    offline-smoke-tested with a mocked model backend, pushed to research-snippets.
+    Not yet run on real hardware -- no results, no gold-standard rows yet.
 ```
 
 **2B RAG attack is now complete for all planned models (Qwen 7B, Qwen 14B, Llama 8B, Mistral 7B, Gemma 12B).**
@@ -382,6 +402,9 @@ LIVELOCK-EXP-Aug9/
       2A_URL_Defense_GPU_01_Bizon.ipynb
       2A_URL_Defense.ipynb
       2A_URL_Defense_MAIN_fallout_qw14b.ipynb
+      2A_URL_Defense_TOPUP_bizon.ipynb
+      2A_URL_Defense_TOPUP_qw14b.ipynb
+      2A_URL_Defense_Gemma_Bizon.ipynb        <- NEW, Gemma 12B, not yet run
       results/
         qw14b/
           exp2a_Defense_exp2a_defense_qw14b_ALL.csv   <- 2364 rows, USE THIS
@@ -435,6 +458,9 @@ LIVELOCK-EXP-Aug9/
     defense/
       2B-RAG-Defense-Main.ipynb
       2B-RAG-Defense-Main-Bizon.ipynb
+      2B-RAG-Defense-TOPUP-qw14b.ipynb
+      2B-RAG-Defense-TOPUP-qw7b-Bizon.ipynb
+      2B_RAG_Defense_Gemma_Bizon.ipynb        <- NEW, Gemma 12B, not yet run
       2b-defense-code.txt
       exp2b_rag_defense_qw7b_320_results.csv  <- partial, 320 rows, excluded from gold
 
@@ -448,6 +474,38 @@ LIVELOCK-EXP-Aug9/
 
 ## What to do next (priority order)
 
+0. **Defense top-up runs, both channels (RAG D-MTD residual + URL early_abort residual).** Not started.
+   `tier2_significance_analysis.py` (paper repo, run 2026-08-14) found underpowered
+   defense residuals on BOTH channels, not just RAG -- an earlier version of this entry
+   incorrectly claimed URL defense needed no topup; that claim only checked the large
+   none/budget_cap floor-to-ceiling collapse cells (corrected p as low as 1.49e-33) and
+   wrongly generalized to "every non-floor effect here is adequately powered." Corrected
+   2026-08-14 after actually checking every URL-channel comparison in the Tier 2 CSVs.
+
+   **RAG channel (D-MTD residual):** 10.0-17.5% adversarial vs 0.0% benign at N=40 does
+   NOT survive Holm-Bonferroni (corrected p from 0.88 to 1.0), unlike the analogous
+   URL-channel Mistral-7B residual at N=100 (corrected p=2.3e-11). Root cause: the RAG
+   defense notebooks (`2B-RAG-Defense-Main.ipynb`, `-Main-Bizon.ipynb`) used a flat
+   n_trials=20 for all four regimes despite a comment claiming the N was "tiered" -- it
+   was not (fixed, comment corrected 2026-08-14). Top-up notebooks ready:
+   `2B-RAG-Defense-TOPUP-qw14b.ipynb`, `2B-RAG-Defense-TOPUP-qw7b-Bizon.ipynb` (n_trials=20
+   more, adversarial-only, Controller-only + Conservative only -> target N=80).
+
+   **URL channel (`early_abort` residual):** the `early_abort` defense's
+   Controller-only/Conservative residual (5-17% adversarial vs 0% benign) at N=60 fails
+   Holm-Bonferroni for 6 of 7 model x regime cells: Qwen2.5-14B (both regimes),
+   Qwen2.5-7B (both), Llama3.1-8B (both), Mistral-7B (Conservative only -- its
+   Controller-only cell already reaches corrected p=0.0215). Top-up notebooks ready:
+   `2A_URL_Defense_TOPUP_qw14b.ipynb`, `2A_URL_Defense_TOPUP_bizon.ipynb` (n_trials=30
+   more, adversarial-only, early_abort only, Controller-only + Conservative only ->
+   target N=120). Power check shows most cells need ~2x current N, but Qwen2.5-14B
+   Controller-only needs ~4x and Mistral-7B Conservative needs ~5x (weak 5% effect,
+   may not resolve even after topup) -- re-run Tier 2 on merged data before assuming a
+   single topup batch closed every cell.
+
+   For both channels: after running, concatenate the new `results_final.csv` with the
+   original per model (matching columns, do NOT overwrite), feed the union into the
+   respective GOLD.csv, and re-run `tier2_significance_analysis.py` on the affected cells.
 1. ~~Finish 2A defense Qwen 7B + Mistral on Bizon.~~ DONE Aug 14 (2560/2560 Qwen 7B, 2557/2560 Mistral). In `exp2A-URL/defense/results/qw7b_mistral/`, in gold standard.
 2. **Re-examine 2A URL defense design:** all four defense models (Qwen 14B, Llama, Qwen 7B, Mistral) used only 2 task_ids + greedy policy. Add more task diversity before final analysis.
 3. ~~Run 2B RAG Main on Bizon for Qwen 7B / Llama / Mistral.~~ DONE Aug 14 (640/640, 638/640, 635/640). In `exp2B-RAG/attack/results/main/`, in gold standard.
@@ -455,6 +513,14 @@ LIVELOCK-EXP-Aug9/
 5. ~~Run 2B RAG Defense (Qwen 7B on Bizon, Qwen 14B on Colab).~~ DONE (1280/1280 each, 2560 rows in gold standard).
 6. **Run 2B RAG Defense for Mistral.** Not started; not in current plan but would complete the defense matrix picture for this model.
 7. **Combined analysis** now that 2B RAG attack has 5 models and 2A defense has 4 models: mixed-effects logistic regression across channels, and flag the Mistral Prompt-only d_mtd exception (37% AILD) in the D-MTD discussion.
+8. **Run the two new Gemma 12B defense notebooks (both channels).** Not started.
+   `2A_URL_Defense_Gemma_Bizon.ipynb` (Bizon GPU 2, 2560 trials) and
+   `2B_RAG_Defense_Gemma_Bizon.ipynb` (Bizon GPU 5, ~1280 trials) are built,
+   offline-smoke-tested, and pushed to research-snippets. Same 2-task-id/greedy-policy
+   limitation noted in item 2 above applies here too. Before launching: run `nvidia-smi`
+   to confirm GPUs 2 and 5 are actually free (other Bizon notebooks may have moved GPUs
+   since these were written), and select the `Python (gemma3-bizon)` kernel (or a sibling
+   copy if it's already busy running the Gemma attack notebooks).
 
 ---
 
