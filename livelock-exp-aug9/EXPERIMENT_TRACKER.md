@@ -1,5 +1,5 @@
 # LIVELOCK Experiment Tracker
-Last updated: 2026-08-14 (evening: added Bizon-configured Gemma 12B defense notebooks for 2A URL and 2B RAG, both offline-smoke-tested and pushed to research-snippets. Not yet run -- see TODO rows below.)
+Last updated: 2026-08-15 (morning: added Llama 8B 2B RAG defense data, 1267/1280, to gold standard. Mistral 7B 2B RAG defense run reportedly finished on Bizon but zip not yet received.)
 
 This document is the single source of truth for what has run, what is still running, what data is collected, and where every file lives.
 
@@ -305,20 +305,50 @@ Gold file: `gold_standard/2b_rag_attack_GOLD.csv` now has 5 models: Qwen 7B (640
 |-------|--------|--------|---------------|
 | Qwen 2.5 7B | 1280 / 1280 | DONE | `exp2B-RAG/defense/results/qw7b/` |
 | Qwen 2.5 14B | 1280 / 1280 | DONE | `exp2B-RAG/defense/results/qw14b/` |
+| Llama 3.1 8B | 1267 / 1280 (13 failed) | DONE, NEW Aug 15 | `exp2B-RAG/defense/results/llama/` |
+| Mistral 7B | not yet received in this repo | Bizon run reportedly finished (per user, Aug 15); zip not yet provided/extracted -- send the `outputs_exp2b_rag_defense_mistral_bizon_essentials.zip` to add it | -- |
 | Gemma 3 12B | 0 / 1280 | TODO (notebook ready, not yet run) | -- |
 
 **Notebooks:**
 - `exp2B-RAG/defense/2B-RAG-Defense-Main.ipynb` (Colab, Qwen 14B)
 - `exp2B-RAG/defense/2B-RAG-Defense-Main-Bizon.ipynb` (Bizon GPU 4, Qwen 7B)
+- Llama 3.1 8B ran from a Llama-configured copy of the Qwen Bizon defense notebook
+  (output folder `outputs_exp2b_rag_defense_llama_bizon`); that copy is not itself
+  checked into this repo, only its CSV outputs are.
 - `exp2B-RAG/defense/2B_RAG_Defense_Gemma_Bizon.ipynb` (Bizon GPU 5, Gemma 12B, NEW 2026-08-14
   evening, not yet run) -- `RAGDefenseConfig`/4-defense/4-regime structure unchanged from the
   Qwen notebook, `load_gemma3()`/`create_gemma3_llm_step()` swapped in for the model backend.
   `SMOKE_TEST=False` by default; single `MODEL_NAMES` definition; warning-suppression cell
   before the main loop. Offline-smoke-tested (mocked backend), not yet run on real hardware.
 
-Gold file: `gold_standard/2b_rag_defense_GOLD.csv` (2560 rows). The old `exp2b_rag_defense_qw7b_320_results.csv` exploratory file is still excluded.
+Gold file: `gold_standard/2b_rag_defense_GOLD.csv` now has three models: Qwen 7B (1280) + Qwen 14B (1280) + Llama 8B (1267) = 3827 rows. The old `exp2b_rag_defense_qw7b_320_results.csv` exploratory file is still excluded.
 
 **N=40 per cell, flat across all four regimes (not tiered like the URL defense notebook, despite an inaccurate comment that used to claim otherwise -- corrected 2026-08-14).** Tier 2 significance testing found this underpowered specifically for the Controller-only/Conservative D-MTD residual (see item 0 in "What to do next" below); a dedicated top-up run is prepared but not yet executed. Note: URL defense (N=60 tier) is NOT fully in the clear either -- see item 0, `early_abort` residual.
+
+### Llama 8B defense AILD results (2B RAG, NEW Aug 15)
+
+1267/1280 completed (13 failed, minor shortfall spread across a few cells -- see `model_summary_final.csv`). No duplicate rows against existing gold on merge.
+
+| Regime | Defense | AILD adversarial | AILD benign | Note |
+|--------|---------|------------------|-------------|------|
+| Baseline | none | 65.0% | 7.5% | Unlike Qwen 7B/14B, Llama has real Baseline AILD even with no controller |
+| Baseline | budget_cap | 67.5% | 7.5% | No better than none |
+| Baseline | early_abort | 10.0% | 12.5% | Suppresses attack; slight benign leakage |
+| Baseline | rag_d_mtd | 10.0% | 7.7% | Comparable to early_abort here |
+| Prompt-only | none | 62.5% | 5.0% | Elevated baseline AILD carries into Prompt-only |
+| Prompt-only | budget_cap | 80.0% | 5.0% | Worse than none |
+| Prompt-only | early_abort | 12.5% | 7.5% | Strong suppression |
+| Prompt-only | rag_d_mtd | 7.7% | 5.0% | Strong suppression |
+| Controller-only | none | 100% | 2.5% | Full AILD confirmed |
+| Controller-only | budget_cap | 100% | 5.0% | Ineffective |
+| Controller-only | early_abort | 17.5% | 2.7% | Partial suppression, residual similar to the URL-channel early_abort gap |
+| Controller-only | rag_d_mtd | 5.0% | 5.0% | Strong suppression, not full zero |
+| Conservative | none | 100% | 0.0% | Full AILD confirmed |
+| Conservative | budget_cap | 100% | 0.0% | Ineffective |
+| Conservative | early_abort | 18.4% | 0.0% | Partial suppression |
+| Conservative | rag_d_mtd | 15.0% | 5.0% | Weakest rag_d_mtd suppression seen so far on this channel |
+
+**Key finding:** Llama is the first RAG-channel model with real Baseline/Prompt-only AILD (Qwen 7B/14B showed ~0% there). `rag_d_mtd` never reaches a clean 0% for Llama the way it does for Qwen (5-15% residual across all four regimes), which is the same qualitative pattern already flagged for Mistral on the URL channel (Prompt-only `d_mtd` = 37% AILD) -- worth folding into the same D-MTD-limitations discussion in the paper rather than treating it as a one-off.
 
 ---
 
@@ -330,8 +360,8 @@ Gold file: `gold_standard/2b_rag_defense_GOLD.csv` (2560 rows). The old `exp2b_r
 Qwen 7B          DONE     DONE        DONE      DONE
 Qwen 14B         DONE*    DONE******** DONE**    DONE
 Qwen3 4B         DONE     TODO        N/A       N/A
-Llama 8B         DONE     DONE        DONE****  N/A
-Mistral 7B       DONE     DONE******* DONE*******N/A
+Llama 8B         DONE     DONE        DONE****  DONE^
+Mistral 7B       DONE     DONE******* DONE*******TODO^^
 Gemma 12B        DONE***** DONE****** TODO#     TODO#
 Gemma 4B         SMOKE    UNCONF      N/A       N/A
 
@@ -356,6 +386,12 @@ Gemma 4B         SMOKE    UNCONF      N/A       N/A
     (2A_URL_Defense_Gemma_Bizon.ipynb GPU 2, 2B_RAG_Defense_Gemma_Bizon.ipynb GPU 5),
     offline-smoke-tested with a mocked model backend, pushed to research-snippets.
     Not yet run on real hardware -- no results, no gold-standard rows yet.
+^  Llama 8B 2B RAG defense, NEW 2026-08-15: 1267/1280 (13 failed). Same 2 task_ids
+    (deadline_policy, policy_applicability) as the other RAG defense models. First
+    RAG-channel model with real Baseline/Prompt-only AILD; rag_d_mtd residual
+    (5-15%) never fully zeroes out, echoing the Mistral URL-channel d_mtd exception.
+^^ Mistral 7B 2B RAG defense: run reportedly finished on Bizon (per user, Aug 15),
+    but the results zip has not been provided/extracted into this repo yet.
 ```
 
 **2B RAG attack is now complete for all planned models (Qwen 7B, Qwen 14B, Llama 8B, Mistral 7B, Gemma 12B).**
@@ -463,6 +499,14 @@ LIVELOCK-EXP-Aug9/
       2B_RAG_Defense_Gemma_Bizon.ipynb        <- NEW, Gemma 12B, not yet run
       2b-defense-code.txt
       exp2b_rag_defense_qw7b_320_results.csv  <- partial, 320 rows, excluded from gold
+      results/
+        qw7b/
+        qw14b/
+        llama/                                <- NEW Aug 15
+          results_meta_llama_Meta_Llama_3.1_8B_Instruct.csv  <- 1267 rows, USE THIS
+          results_final.csv
+          model_summary_final.csv
+          outputs_exp2b_rag_defense_llama_bizon_essentials.zip  (raw source zip)
 
   paper/
     livelock_paper_statistical_review.md
@@ -511,8 +555,17 @@ LIVELOCK-EXP-Aug9/
 3. ~~Run 2B RAG Main on Bizon for Qwen 7B / Llama / Mistral.~~ DONE Aug 14 (640/640, 638/640, 635/640). In `exp2B-RAG/attack/results/main/`, in gold standard.
 4. ~~Run 2B RAG Main on Colab for Qwen 14B.~~ DONE Aug 14 (640/640, 0 failed). In `exp2B-RAG/attack/results/qw14b/`, in gold standard.
 5. ~~Run 2B RAG Defense (Qwen 7B on Bizon, Qwen 14B on Colab).~~ DONE (1280/1280 each, 2560 rows in gold standard).
-6. **Run 2B RAG Defense for Mistral.** Not started; not in current plan but would complete the defense matrix picture for this model.
-7. **Combined analysis** now that 2B RAG attack has 5 models and 2A defense has 4 models: mixed-effects logistic regression across channels, and flag the Mistral Prompt-only d_mtd exception (37% AILD) in the D-MTD discussion.
+5b. ~~Run 2B RAG Defense for Llama 8B.~~ DONE Aug 15 (1267/1280, 13 failed). In
+   `exp2B-RAG/defense/results/llama/`, in gold standard (3827 rows total now).
+6. **Get 2B RAG Defense data for Mistral into this repo.** Run reportedly finished on
+   Bizon (per user, Aug 15); only the Llama zip has been provided/extracted so far.
+   Send `outputs_exp2b_rag_defense_mistral_bizon_essentials.zip` to complete the
+   defense matrix picture for this model.
+7. **Combined analysis** now that 2B RAG attack has 5 models and 2B RAG defense has 3
+   models (Qwen 7B, Qwen 14B, Llama): mixed-effects logistic regression across
+   channels, and flag both the Mistral Prompt-only URL-channel d_mtd exception (37%
+   AILD) and the Llama RAG-channel rag_d_mtd residual (5-15%, never fully zero) in the
+   D-MTD discussion.
 8. **Run the two new Gemma 12B defense notebooks (both channels).** Not started.
    `2A_URL_Defense_Gemma_Bizon.ipynb` (Bizon GPU 2, 2560 trials) and
    `2B_RAG_Defense_Gemma_Bizon.ipynb` (Bizon GPU 5, ~1280 trials) are built,
