@@ -1,6 +1,6 @@
 # LIVELOCK Gold Standard Data
 
-Updated 2026-08-15 (morning). Data only. No notebooks.
+Updated 2026-08-15 (afternoon). Data only. No notebooks.
 
 This folder is a git repo, separate from `LIVELOCK-EXP-Aug9`.
 
@@ -11,13 +11,13 @@ This folder is a git repo, separate from `LIVELOCK-EXP-Aug9`.
 | `2a_url_attack_GOLD.csv` | 3757 | 2A URL attack, 6 models |
 | `2a_url_defense_GOLD.csv` | 10041 | 2A URL defense: Qwen 14B + Llama + Qwen 7B + Mistral |
 | `2b_rag_attack_GOLD.csv` | 3142 | 2B RAG attack: Qwen 7B + Qwen 14B + Llama + Mistral + Gemma 12B |
-| `2b_rag_defense_GOLD.csv` | 3827 | 2B RAG defense: Qwen 7B (1280) + Qwen 14B (1280) + Llama (1267) |
+| `2b_rag_defense_GOLD.csv` | 5072 | 2B RAG defense: Qwen 7B (1280) + Qwen 14B (1280) + Llama (1267) + Mistral (1245) |
 
 Do not concatenate 2A and 2B without aligning schemas.
 
 ## Not in gold
 
-- 2B RAG defense Mistral: run reportedly finished on Bizon (per user, 2026-08-15), but the results zip has not been provided/extracted yet. Not in this repo.
+- 2B RAG defense Gemma 12B: notebook ready, not yet run.
 - 2B RAG defense exploratory Qwen 7B file (`exp2b_rag_defense_qw7b_320_results.csv`, 320 rows, old schema): excluded, superseded by the full 1280-row run.
 
 ## 2A URL attack
@@ -54,8 +54,9 @@ Qwen 14B 2B RAG AILD: Baseline/Prompt-only adversarial 4% (n=100), Controller-on
 | Qwen/Qwen2.5-7B-Instruct | 1280 | Bizon. 40 per arm, 4 defenses |
 | Qwen/Qwen2.5-14B-Instruct | 1280 | Colab. 40 per arm, 4 defenses. 1280/1280 |
 | meta-llama/Meta-Llama-3.1-8B-Instruct | 1267 | Bizon. NEW Aug 15. 40 per arm, 4 defenses. 13 failed of 1280 |
+| mistralai/Mistral-7B-Instruct-v0.3 | 1245 | Bizon. NEW Aug 15. 40 per arm, 4 defenses. 35 failed of 1280 |
 
-First RAG-channel model with real Baseline/Prompt-only AILD (Qwen 7B/14B were ~0% there). `rag_d_mtd` residual for Llama is 5-15% across all four regimes, never a clean 0%, echoing the Mistral URL-channel Prompt-only d_mtd exception below.
+First RAG-channel models with real Baseline/Prompt-only AILD (Qwen 7B/14B were ~0% there). `rag_d_mtd` residual for Llama and Mistral is 5-15% across Controller/Conservative, never a clean 0%. Cross-channel contrast for Mistral: URL Prompt-only `d_mtd` was 37%, but RAG Prompt-only `rag_d_mtd` is only 5%.
 
 ## Progress matrix
 
@@ -65,7 +66,7 @@ First RAG-channel model with real Baseline/Prompt-only AILD (Qwen 7B/14B were ~0
 | Qwen 14B | DONE | DONE | DONE | DONE |
 | Qwen3 4B | DONE | TODO | N/A | N/A |
 | Llama 8B | DONE | DONE | DONE | DONE |
-| Mistral 7B | DONE | DONE | DONE | TODO (run finished on Bizon, zip not yet received) |
+| Mistral 7B | DONE | DONE | DONE | DONE |
 | Gemma 12B | DONE | DONE | N/A | N/A |
 | Gemma 4B | SMOKE only | unconfirmed | N/A | N/A |
 

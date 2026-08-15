@@ -1,0 +1,2 @@
+model_name,completed_trials,failed_trials,total_trials,success_rate
+mistralai/Mistral-7B-Instruct-v0.3,1245,35,1280,0.97265625
