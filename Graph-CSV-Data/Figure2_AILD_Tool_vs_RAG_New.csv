@@ -1,0 +1,5 @@
+Regime,Tool Benign,Tool Adversarial,RAG Benign,RAG Adversarial
+Baseline,8.33,11.5,2.01,17.67
+Prompt-only,8.33,22.13,1.4,18.4
+Controller-only,8.33,72.24,0.0,71.59
+Conservative,0.0,74.49,0.0,76.53

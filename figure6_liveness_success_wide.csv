@@ -1,0 +1,9 @@
+Surface,Defense,Liveness Restored Attacker,Liveness Restored Benign,Task Success Attacker,Task Success Benign
+RAG,No Defense,40.23,98.12,37.62,97.96
+Tool,No Defense,46.41,93.75,28.32,45.31
+RAG,Budget Cap,27.66,98.12,25.62,97.66
+Tool,Budget Cap,42.47,93.75,26.61,45.31
+RAG,Early Abort,91.72,98.11,61.62,97.48
+Tool,Early Abort,93.82,96.09,47.93,47.66
+RAG,D-MTD,92.46,97.97,77.39,88.73
+Tool,D-MTD,91.67,94.1,47.94,48.03

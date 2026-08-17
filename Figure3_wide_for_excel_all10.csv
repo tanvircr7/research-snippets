@@ -1,0 +1,5 @@
+Regime,Qwen2.5-7B  Adversarial,Qwen2.5-7B  Benign,Qwen2.5-14B  Adversarial,Qwen2.5-14B  Benign,Gemma3-12B  Adversarial,Gemma3-12B  Benign,Mistral-7B  Adversarial,Mistral-7B  Benign,Llama3.1-8B  Adversarial,Llama3.1-8B  Benign
+Baseline,3.0,0.0,4.0,0.0,47.0,0.0,19.39,3.06,15.0,7.0
+Prompt-only,0.0,0.0,4.0,0.0,49.0,0.0,27.0,4.0,12.0,3.0
+Controller-only,100.0,0.0,100.0,0.0,100.0,0.0,65.0,0.0,6.67,0.0
+Conservative,100.0,0.0,100.0,0.0,100.0,0.0,66.67,0.0,23.73,0.0
