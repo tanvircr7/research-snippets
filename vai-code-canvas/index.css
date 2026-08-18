@@ -1,0 +1,44 @@
+:root {
+  --bg: #ffffff;
+  --fg: #1a1d21;
+  --fg-secondary: #6b7280;
+  --border: #e5e7eb;
+  --surface: #fafafa;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181c;
+    --fg: #e8eaed;
+    --fg-secondary: #9aa1ab;
+    --border: #2b2f36;
+    --surface: #1c1f24;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Grid honors its `columns` prop on wide screens, collapses on narrow ones. */
+.canvas-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--canvas-grid-cols, 2), minmax(0, 1fr));
+}
+
+@media (max-width: 820px) {
+  .canvas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+  .canvas-grid { grid-template-columns: 1fr; }
+}
